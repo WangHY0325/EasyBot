@@ -1,161 +1,181 @@
-收到！我已经详细分析了您的 `pip list`，这是一个非常典型的基于 PySide6 + Nanobot (LangChain 生态) 的环境。
+这份文档是为您量身定制的 **EasyBot V0.3 开发与运维手册**。
 
-我为您量身定制了**最终版的 `TECHNICAL_DOCS.md`**。这份文档不仅包含了刚才讨论的所有内容，还补充了：
-1.  **精确的 `requirements.txt`**：我已经帮您把列表中最核心的库（如 `PySide6`, `litellm`, `rich` 等）筛选出来，去掉了 `altgraph`, `pefile` 这种打包工具自带的或无关的库，方便别人快速复现。
-2.  **针对新目录的 Git 操作流程**：按照您要在 `EasyBot-github\V0.2` 进行上传的需求，调整了操作步骤。
-
-***
-
-### 请将以下内容保存为 `TECHNICAL_DOCS.md` (覆盖旧文件)
-
-```markdown
-# EasyBot v2.0 技术开发与维护文档
-
-**版本**: v0.2
-**最后更新**: 2026-02-09
-**维护者**: WangHY0325
+它涵盖了从环境搭建、代码结构、语音配置、打包发布到 Git 上传的全流程。您可以直接保存为 `README_DEV.md` 或 `开发文档.txt` 放入项目文件夹中。
 
 ---
 
-## 1. 项目目录结构说明
+# EasyBot V0.3 开发文档
 
-本项目位于 `EasyBot-github/V0.2/` 目录下。
-
-| 目录/文件 | 类型 | 描述 | 是否需提交 Git |
-| :--- | :--- | :--- | :--- |
-| **launcher.py** | 🐍 源码 | **[核心]** 程序启动入口、GUI 逻辑、环境修复代码。 | ✅ 是 |
-| **icon.ico** | 🖼️ 资源 | 应用程序图标。 | ✅ 是 |
-| **nanobot-main/** | 📁 依赖 | Nanobot 的核心源码（开发版）。 | ✅ 是 |
-| **TECHNICAL_DOCS.md**| 📄 文档 | 本技术文档。 | ✅ 是 |
-| **README.md** | 📄 文档 | 用户使用手册。 | ✅ 是 |
-| **requirements.txt** | ⚙️ 配置 | Python 依赖列表（见下文）。 | ✅ 是 |
-| **EasyBot.spec** | ⚙️ 配置 | PyInstaller 的打包配置文件。 | ✅ 是 (可选) |
-| **.gitignore** | ⚙️ 配置 | Git 忽略规则文件。 | ✅ 是 |
-| **build/** | 🏗️ 临时 | PyInstaller 打包过程产生的中间文件。 | ❌ 否 (需忽略) |
-| **dist/** | 📦 产物 | **最终生成的 EXE 文件夹** (EasyBot.exe 在此)。 | ❌ 否 (需忽略) |
-| **__pycache__/** | 🗑️ 缓存 | Python 编译后的字节码文件。 | ❌ 否 (需忽略) |
-| **.idea/** | ⚙️ 配置 | IDE 项目配置目录。 | ❌ 否 (需忽略) |
-| **CRASH_LOG.txt** | 📝 日志 | 崩溃错误日志。 | ❌ 否 (需忽略) |
+**版本**: V0.3 (集成离线语音版)
+**核心功能**: 本地化 AI 助手 GUI，支持多模型 API 切换，集成 Vosk 离线语音识别。
 
 ---
 
-## 2. 开发环境搭建 (Environment Setup)
+## 1. 环境搭建 (Environment Setup)
 
-### 2.1 核心依赖列表 (`requirements.txt`)
-基于当前稳定运行环境（Python 3.10+），请使用以下核心库版本：
+### 1.1 基础要求
+*   **操作系统**: Windows 10/11
+*   **Python 版本**: 建议 Python 3.10 或 3.11
+*   **开发工具**: PyCharm 或 VS Code
 
-```text
-# GUI 框架
-PySide6==6.10.2
-
-# 核心逻辑与 AI 能力
-litellm==1.81.9
-openai==2.17.0
-tiktoken==0.12.0
-rich==14.3.2
-pydantic==2.12.5
-typer==0.21.1
-markdown==3.10.1
-
-# 网络与工具
-httpx==0.28.1
-requests==2.32.5
-python-dotenv==1.2.1
-colorama==0.4.6
-
-# 打包工具
-pyinstaller==6.18.0
-```
-
-### 2.2 安装步骤
-```bash
-# 1. 创建并激活虚拟环境 (可选)
-conda create -n easybot python=3.11
-conda activate easybot
-
-# 2. 安装依赖
-pip install -r requirements.txt
-
-# 3. 安装 nanobot 开发版 (如果使用本地源码)
-cd nanobot-main
-pip install -e .
-```
-
----
-
-## 3. 软件打包指南 (Build Workflow)
-
-⚠️ **注意**：必须使用以下特定命令打包，以解决“缺少编码文件”和“体积过大”的问题。
-
-### 3.1 黄金打包命令 (Golden Command)
-
-在 `V0.2` 目录下打开 PowerShell/CMD，直接执行：
+### 1.2 初始化虚拟环境
+为了保持环境纯净，建议在项目根目录下创建虚拟环境：
 
 ```powershell
-pyinstaller --noconsole --clean -y --name "EasyBot" --icon="icon.ico" --add-data="icon.ico;." --hidden-import="nanobot" --hidden-import="tiktoken_ext.openai_public" --hidden-import="litellm.litellm_core_utils.tokenizers" --collect-all "nanobot" --collect-all "rich" --collect-all "tiktoken_ext" --collect-data "certifi" --collect-data "litellm" --copy-metadata "pydantic" --copy-metadata "litellm" launcher.py
+# 1. 创建虚拟环境
+python -m venv venv
+
+# 2. 激活虚拟环境
+.\venv\Scripts\activate
 ```
 
-### 3.2 产物位置
-打包完成后，双击 `dist/EasyBot/EasyBot.exe` 即可运行。
-
----
-
-## 4. Git 版本控制操作手册
-
-### 4.1 准备工作
-在 `V0.2` 目录下新建名为 `.gitignore` 的文件，填入以下内容：
+### 1.3 安装依赖
+请确保项目根目录下有 `requirements.txt`，内容如下：
 
 ```text
-# 忽略打包产物
-build/
-dist/
-*.spec
-
-# 忽略 Python 缓存
-__pycache__/
-*.pyc
-
-# 忽略 IDE 配置
-.idea/
-
-# 忽略日志
-*.log
-CRASH_LOG.txt
+PySide6
+vosk
+sounddevice
+numpy
+markdown
+# 以下为 nanobot 核心依赖 (根据实际情况调整)
+litellm
+openai
+rich
 ```
 
-### 4.2 提交代码流程
-**场景**：您要将 `C:\Users\14813\Desktop\EasyBot-github\V0.2` 的内容上传到 GitHub。
-
-1.  打开终端，进入该目录：
-    ```powershell
-    cd "C:\Users\14813\Desktop\EasyBot-github\V0.2"
-    ```
-
-2.  初始化并关联仓库（如果尚未初始化）：
-    ```powershell
-    git init
-    git remote add origin https://github.com/WangHY0325/EasyBot.git
-    ```
-
-3.  **提交更改**：
-    ```powershell
-    git add .
-    git commit -m "Update v0.2: Fix encoding, stability issues and update docs"
-    ```
-
-4.  **推送到 GitHub**：
-    ```powershell
-    git push origin main
-    ```
+**安装命令**：
+```powershell
+pip install -r requirements.txt
+```
 
 ---
 
-## 5. 故障排除 (Troubleshooting)
+## 2. 项目结构说明
 
-| 问题现象 | 根本原因 | 解决方案 |
-| :--- | :--- | :--- |
-| **DeepSeek 报错 `Unknown encoding`** | `tiktoken` 插件未加载 | 确保打包命令包含 `--collect-all "tiktoken_ext"` 且代码中有 `import tiktoken_ext...` |
-| **界面无法输入中文/乱码** | Windows 管道默认 GBK 编码 | `launcher.py` 中必须有 `sys.stdin.reconfigure(encoding='utf-8')` |
-| **打包体积超过 500MB** | 错误使用了全量收集 | 对 `pydantic` 和 `litellm` 使用 `--copy-metadata` 而不是 `--collect-all` |
-| **界面一片空白 (缺失组件)** | `rich` 库渲染失败 | 确保打包命令包含 `--collect-all "rich"` |
+您的项目文件结构应如下所示，请保持此结构以确保打包和运行正常：
+
+```text
+V0.3/
+├── launcher.py           # [核心] 程序启动入口 (GUI主逻辑)
+├── icon.ico              # 程序图标
+├── requirements.txt      # 依赖列表
+│
+├── model_api/            # API 配置文件夹
+│   └── settings.py       # 存放 API Key 和模型列表
+│
+├── skills/               # [新增] 技能模块文件夹
+│   ├── __init__.py
+│   └── VoiceChat.py      # 语音识别逻辑 (Vosk + SoundDevice)
+│
+├── model/                # [新增] 离线语音模型文件夹
+│   └── vosk-model-small-cn-0.22/  # 解压后的模型文件 (内含 conf, am 等)
+│
+└── dist/                 # (自动生成) 打包后的 exe 输出目录
 ```
+
+---
+
+## 3. 语音功能配置 (Voice Setup)
+
+本项目使用 **Vosk** 进行离线语音识别，无需联网，不占用 GPU 显存。
+
+1.  **模型下载**：
+    *   模型名称：`vosk-model-small-cn-0.22` (约 40MB)
+    *   下载地址：请访问 Vosk 官网或 GitHub 下载。
+2.  **放置位置**：
+    *   解压后，将文件夹放入项目根目录下的 `model` 文件夹中。
+    *   确保路径存在：`V0.3/model/vosk-model-small-cn-0.22/conf/model.conf`
+
+---
+
+## 4. 打包发布 (Build / Packaging)
+
+我们要将程序打包为 `.exe`，以便在没有 Python 的电脑上运行。为了保持安装包小巧（<100MB），我们**不将模型文件打包进 exe 内部**，而是采用“外挂”方式。
+
+### 4.1 执行打包命令
+请在终端（确保已激活虚拟环境）执行以下命令：
+
+```powershell
+pyinstaller --noconsole --clean -y --name "EasyBot" --icon="icon.ico" --add-data="icon.ico;." --add-data="skills;skills" --hidden-import="nanobot" --hidden-import="tiktoken_ext.openai_public" --hidden-import="litellm.litellm_core_utils.tokenizers" --hidden-import="vosk" --hidden-import="sounddevice" --collect-all "nanobot" --collect-all "rich" --collect-all "tiktoken_ext" --collect-all "vosk" --collect-data "certifi" --collect-data "litellm" --copy-metadata "pydantic" --copy-metadata "litellm" launcher.py
+```
+
+### 4.2 打包后处理 (关键步骤！)
+打包完成后，`dist/EasyBot` 文件夹里会有 `EasyBot.exe`，但此时运行会报错“找不到模型”。
+
+**必须手动操作：**
+1.  找到您源码目录下的 `model` 文件夹。
+2.  将其**复制**到 `dist/EasyBot/` 目录下。
+3.  最终目录结构应为：
+    *   `dist/EasyBot/EasyBot.exe`
+    *   `dist/EasyBot/model/`
+
+此时双击 exe 即可正常运行。
+
+---
+
+## 5. Git 版本控制 (上传至 GitHub)
+
+由于您的项目总大小（包含代码和资源）小于 100MB，我们可以使用最简单的 Git 流程。
+
+**仓库地址**: `https://github.com/WangHY0325/EasyBot.git`
+*(注：如果仓库地址变更，请在下方命令中替换)*
+
+### 5.1 首次上传 / 强制覆盖上传
+如果您想把当前文件夹的所有内容推送到 GitHub，并覆盖之前的记录：
+
+1.  **清理旧 Git 信息** (可选，防止冲突)：
+    ```powershell
+    Remove-Item -Recurse -Force .git
+    ```
+
+2.  **初始化并提交**：
+    ```powershell
+    # 初始化
+    git init
+    git branch -M main
+
+    # 关联远程仓库
+    git remote add origin https://github.com/WangHY0325/EasyBot.git
+
+    # 添加所有文件
+    git add .
+
+    # 提交到本地
+    git commit -m "Update V0.3: Voice Chat Integrated"
+    ```
+
+3.  **推送到 GitHub**：
+    ```powershell
+    # 强制推送 (慎用，会覆盖远程仓库的历史)
+    git push -f origin main
+    ```
+
+### 5.2 日常更新 (非首次)
+后续如果您只修改了代码（比如 `launcher.py`），使用以下标准流程：
+
+```powershell
+git add .
+git commit -m "修复了xxx bug"
+git push origin main
+```
+
+---
+
+## 6. 常见问题排查 (Troubleshooting)
+
+### Q1: 运行或打包后报错 `UnicodeEncodeError: 'gbk' codec...`
+*   **原因**: Windows 终端不支持 ✅ 🔥 等 Emoji 字符。
+*   **解决**: 确保 `launcher.py` 头部已加入以下代码：
+    ```python
+    if sys.stdout and hasattr(sys.stdout, 'reconfigure'):
+        sys.stdout.reconfigure(encoding='utf-8')
+    ```
+
+### Q2: 语音识别报错 `Failed to create a model`
+*   **原因**: 程序没找到模型文件夹。
+*   **解决**: 检查 `model` 文件夹是否在 exe 同级目录下，且文件夹内部结构没有多余的嵌套。
+
+### Q3: 机器人回复很慢
+*   **原因**: 如果使用的是 DeepSeek 等热门 API，属于服务器侧延迟；或者是 Python 输出缓冲导致。
+*   **解决**: 代码已内置 `PYTHONUNBUFFERED=1` 优化。如果是 API 问题，尝试更换模型测试。
