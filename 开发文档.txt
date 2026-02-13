@@ -1,0 +1,161 @@
+收到！我已经详细分析了您的 `pip list`，这是一个非常典型的基于 PySide6 + Nanobot (LangChain 生态) 的环境。
+
+我为您量身定制了**最终版的 `TECHNICAL_DOCS.md`**。这份文档不仅包含了刚才讨论的所有内容，还补充了：
+1.  **精确的 `requirements.txt`**：我已经帮您把列表中最核心的库（如 `PySide6`, `litellm`, `rich` 等）筛选出来，去掉了 `altgraph`, `pefile` 这种打包工具自带的或无关的库，方便别人快速复现。
+2.  **针对新目录的 Git 操作流程**：按照您要在 `EasyBot-github\V0.2` 进行上传的需求，调整了操作步骤。
+
+***
+
+### 请将以下内容保存为 `TECHNICAL_DOCS.md` (覆盖旧文件)
+
+```markdown
+# EasyBot v2.0 技术开发与维护文档
+
+**版本**: v0.2
+**最后更新**: 2026-02-09
+**维护者**: WangHY0325
+
+---
+
+## 1. 项目目录结构说明
+
+本项目位于 `EasyBot-github/V0.2/` 目录下。
+
+| 目录/文件 | 类型 | 描述 | 是否需提交 Git |
+| :--- | :--- | :--- | :--- |
+| **launcher.py** | 🐍 源码 | **[核心]** 程序启动入口、GUI 逻辑、环境修复代码。 | ✅ 是 |
+| **icon.ico** | 🖼️ 资源 | 应用程序图标。 | ✅ 是 |
+| **nanobot-main/** | 📁 依赖 | Nanobot 的核心源码（开发版）。 | ✅ 是 |
+| **TECHNICAL_DOCS.md**| 📄 文档 | 本技术文档。 | ✅ 是 |
+| **README.md** | 📄 文档 | 用户使用手册。 | ✅ 是 |
+| **requirements.txt** | ⚙️ 配置 | Python 依赖列表（见下文）。 | ✅ 是 |
+| **EasyBot.spec** | ⚙️ 配置 | PyInstaller 的打包配置文件。 | ✅ 是 (可选) |
+| **.gitignore** | ⚙️ 配置 | Git 忽略规则文件。 | ✅ 是 |
+| **build/** | 🏗️ 临时 | PyInstaller 打包过程产生的中间文件。 | ❌ 否 (需忽略) |
+| **dist/** | 📦 产物 | **最终生成的 EXE 文件夹** (EasyBot.exe 在此)。 | ❌ 否 (需忽略) |
+| **__pycache__/** | 🗑️ 缓存 | Python 编译后的字节码文件。 | ❌ 否 (需忽略) |
+| **.idea/** | ⚙️ 配置 | IDE 项目配置目录。 | ❌ 否 (需忽略) |
+| **CRASH_LOG.txt** | 📝 日志 | 崩溃错误日志。 | ❌ 否 (需忽略) |
+
+---
+
+## 2. 开发环境搭建 (Environment Setup)
+
+### 2.1 核心依赖列表 (`requirements.txt`)
+基于当前稳定运行环境（Python 3.10+），请使用以下核心库版本：
+
+```text
+# GUI 框架
+PySide6==6.10.2
+
+# 核心逻辑与 AI 能力
+litellm==1.81.9
+openai==2.17.0
+tiktoken==0.12.0
+rich==14.3.2
+pydantic==2.12.5
+typer==0.21.1
+markdown==3.10.1
+
+# 网络与工具
+httpx==0.28.1
+requests==2.32.5
+python-dotenv==1.2.1
+colorama==0.4.6
+
+# 打包工具
+pyinstaller==6.18.0
+```
+
+### 2.2 安装步骤
+```bash
+# 1. 创建并激活虚拟环境 (可选)
+conda create -n easybot python=3.11
+conda activate easybot
+
+# 2. 安装依赖
+pip install -r requirements.txt
+
+# 3. 安装 nanobot 开发版 (如果使用本地源码)
+cd nanobot-main
+pip install -e .
+```
+
+---
+
+## 3. 软件打包指南 (Build Workflow)
+
+⚠️ **注意**：必须使用以下特定命令打包，以解决“缺少编码文件”和“体积过大”的问题。
+
+### 3.1 黄金打包命令 (Golden Command)
+
+在 `V0.2` 目录下打开 PowerShell/CMD，直接执行：
+
+```powershell
+pyinstaller --noconsole --clean -y --name "EasyBot" --icon="icon.ico" --add-data="icon.ico;." --hidden-import="nanobot" --hidden-import="tiktoken_ext.openai_public" --hidden-import="litellm.litellm_core_utils.tokenizers" --collect-all "nanobot" --collect-all "rich" --collect-all "tiktoken_ext" --collect-data "certifi" --collect-data "litellm" --copy-metadata "pydantic" --copy-metadata "litellm" launcher.py
+```
+
+### 3.2 产物位置
+打包完成后，双击 `dist/EasyBot/EasyBot.exe` 即可运行。
+
+---
+
+## 4. Git 版本控制操作手册
+
+### 4.1 准备工作
+在 `V0.2` 目录下新建名为 `.gitignore` 的文件，填入以下内容：
+
+```text
+# 忽略打包产物
+build/
+dist/
+*.spec
+
+# 忽略 Python 缓存
+__pycache__/
+*.pyc
+
+# 忽略 IDE 配置
+.idea/
+
+# 忽略日志
+*.log
+CRASH_LOG.txt
+```
+
+### 4.2 提交代码流程
+**场景**：您要将 `C:\Users\14813\Desktop\EasyBot-github\V0.2` 的内容上传到 GitHub。
+
+1.  打开终端，进入该目录：
+    ```powershell
+    cd "C:\Users\14813\Desktop\EasyBot-github\V0.2"
+    ```
+
+2.  初始化并关联仓库（如果尚未初始化）：
+    ```powershell
+    git init
+    git remote add origin https://github.com/WangHY0325/EasyBot.git
+    ```
+
+3.  **提交更改**：
+    ```powershell
+    git add .
+    git commit -m "Update v0.2: Fix encoding, stability issues and update docs"
+    ```
+
+4.  **推送到 GitHub**：
+    ```powershell
+    git push origin main
+    ```
+
+---
+
+## 5. 故障排除 (Troubleshooting)
+
+| 问题现象 | 根本原因 | 解决方案 |
+| :--- | :--- | :--- |
+| **DeepSeek 报错 `Unknown encoding`** | `tiktoken` 插件未加载 | 确保打包命令包含 `--collect-all "tiktoken_ext"` 且代码中有 `import tiktoken_ext...` |
+| **界面无法输入中文/乱码** | Windows 管道默认 GBK 编码 | `launcher.py` 中必须有 `sys.stdin.reconfigure(encoding='utf-8')` |
+| **打包体积超过 500MB** | 错误使用了全量收集 | 对 `pydantic` 和 `litellm` 使用 `--copy-metadata` 而不是 `--collect-all` |
+| **界面一片空白 (缺失组件)** | `rich` 库渲染失败 | 确保打包命令包含 `--collect-all "rich"` |
+```
